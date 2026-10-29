@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Test javoblari</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathlive@0.111.1/mathlive.min.js"></script>
+<style>
+  :root{
+    --bg: var(--tg-theme-bg-color, #ffffff);
+    --bg2: var(--tg-theme-secondary-bg-color, #f3f4f7);
+    --text: var(--tg-theme-text-color, #1b1f2a);
+    --hint: var(--tg-theme-hint-color, #8a8f9c);
+    --accent: #1F3A5F;            /* asosiy rang */
+    --accent-2: #C9A227;          /* oltin */
+    --ok: #1E9E5A;
+    --warn: #E0692B;
+    --card: var(--tg-theme-bg-color, #ffffff);
+    --line: rgba(127,127,127,.18);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg2);color:var(--text);
+    font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+  .top{position:sticky;top:0;z-index:5;background:var(--accent);color:#fff;padding:12px 16px 10px}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .title{font-weight:700;font-size:16px}
+  .sub{opacity:.8;font-size:13px}
+  .timer{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:999px;
+    padding:4px 10px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .timer.low{background:var(--warn);border-color:var(--warn)}
+  .bar{height:6px;background:rgba(255,255,255,.2);border-radius:3px;margin-top:10px;overflow:hidden}
+  .bar i{display:block;height:100%;width:0;background:var(--accent-2);transition:width .25s}
+  main{padding:12px 12px 120px}
+  h2{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--hint);margin:18px 6px 8px}
+  .card{background:var(--card);border-radius:14px;padding:4px 0;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+  .q{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line)}
+  .q:last-child{border-bottom:0}
+  .num{width:34px;flex:none;font-weight:700;font-variant-numeric:tabular-nums;color:var(--hint);text-align:right}
+  .q.done .num{color:var(--accent)}
+  .opts{display:flex;gap:8px;flex:1;justify-content:space-between;max-width:320px}
+  .opt{flex:1;height:42px;min-width:38px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg2);
+    color:var(--text);font-weight:700;font-size:16px;cursor:pointer;transition:transform .08s}
+  .opt:active{transform:scale(.94)}
+  .opt.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .oq{padding:10px 12px;border-bottom:1px solid var(--line)}
+  .oq:last-child{border-bottom:0}
+  .oq .lab{display:flex;justify-content:space-between;align-items:center;font-weight:700;margin-bottom:6px}
+  .oq .lab span{color:var(--hint);font-weight:500;font-size:13px}
+  .oq.done .lab b{color:var(--accent)}
+  math-field,.plain{display:block;width:100%;min-height:48px;font-size:22px;border-radius:12px;
+    border:1.5px solid var(--line);background:var(--bg2);color:var(--text);padding:6px 10px}
+  math-field:focus-within,.plain:focus{outline:none;border-color:var(--accent)}
+  .clr{border:0;background:none;color:var(--hint);font-size:13px;padding:4px 6px;cursor:pointer}
+  .help{font-size:13px;color:var(--hint);margin:6px 8px 0}
+  .fallback{position:fixed;left:12px;right:12px;bottom:12px;height:52px;border:0;border-radius:14px;
+    background:var(--accent);color:#fff;font-weight:700;font-size:16px;display:none}
+  .closed{padding:40px 20px;text-align:center;color:var(--hint)}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="row">
+    <div>
+      <div class="title" id="title">Test</div>
+      <div class="sub" id="who"></div>
+    </div>
+    <div class="timer" id="timer" hidden>--:--</div>
+  </div>
+  <div class="bar"><i id="bar"></i></div>
+</div>
+<main id="main"></main>
+<button class="fallback" id="fallbackBtn">Yuborish</button>
+
+<script>
+(function(){
+  const tg = window.Telegram && window.Telegram.WebApp;
+  const P = new URLSearchParams(location.search);
+  const MODE = P.get("m") === "k" ? "key" : "student";       // k — o'qituvchi kaliti
+  const CODE = P.get("c") || "new";
+  const NC = Math.max(0, parseInt(P.get("nc") || "0", 10));
+  const VAR = Math.min(6, Math.max(2, parseInt(P.get("v") || "4", 10)));
+  const OL = (P.get("ol") || "").split(",").filter(Boolean);
+  const END = parseInt(P.get("e") || "0", 10);
+  const FAN = P.get("f") || "";
+  const NAME = P.get("n") || "";
+  const LETTERS = "ABCDEF".slice(0, VAR).split("");
+  const STORE = "rash_" + MODE + "_" + CODE;
+
+  if (tg){ tg.ready(); tg.expand(); try{ tg.enableClosingConfirmation(); }catch(e){} }
+
+  let st = { closed: Array(NC).fill(""), open: Array(OL.length).fill(""), lx: {} };
+  try { const s = JSON.parse(localStorage.getItem(STORE) || "null");
+        if (s && s.closed && s.closed.length === NC && s.open && s.open.length === OL.length) st = s; } catch(e){}
+  const save = () => { try{ localStorage.setItem(STORE, JSON.stringify(st)); }catch(e){} };
+
+  document.getElementById("title").textContent =
+    MODE === "key" ? "Kalit (to‘g‘ri javoblar)" : ("Test " + CODE + (FAN ? " · " + FAN : ""));
+  document.getElementById("who").textContent = MODE === "key" ? "Har bir savolning to‘g‘ri javobini belgilang" : NAME;
+
+  const main = document.getElementById("main");
+  const total = NC + OL.length;
+
+  // ---- yopiq savollar ----
+  if (NC){
+    const h = document.createElement("h2"); h.textContent = "Yopiq savollar (1–" + NC + ")"; main.appendChild(h);
+    const card = document.createElement("div"); card.className = "card"; main.appendChild(card);
+    for (let i = 0; i < NC; i++){
+      const row = document.createElement("div"); row.className = "q"; row.dataset.i = i;
+      row.innerHTML = '<div class="num">' + (i + 1) + '</div><div class="opts"></div>';
+      const opts = row.querySelector(".opts");
+      LETTERS.forEach(L => {
+        const b = document.createElement("button"); b.className = "opt"; b.textContent = L;
+        b.onclick = () => {
+          st.closed[i] = st.closed[i] === L ? "" : L;
+          paintRow(row, i); save(); update();
+          if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        };
+        opts.appendChild(b);
+      });
+      card.appendChild(row); paintRow(row, i);
+    }
+  }
+  function paintRow(row, i){
+    row.classList.toggle("done", !!st.closed[i]);
+    row.querySelectorAll(".opt").forEach(b => b.classList.toggle("on", b.textContent === st.closed[i]));
+  }
+
+  // ---- yozma savollar ----
+  const fields = [];
+  if (OL.length){
+    const h = document.createElement("h2"); h.textContent = "Yozma savollar"; main.appendChild(h);
+    const card = document.createElement("div"); card.className = "card"; main.appendChild(card);
+    OL.forEach((lab, j) => {
+      const box = document.createElement("div"); box.className = "oq";
+      box.innerHTML = '<div class="lab"><b>' + lab.replace(/^(\d+)([a-z])$/, "$1 $2)") + '</b>' +
+                      '<button class="clr">Tozalash</button></div>';
+      const slot = document.createElement("div"); box.appendChild(slot); card.appendChild(box);
+      fields.push({ box, slot, j });
+      box.querySelector(".clr").onclick = () => { st.open[j] = ""; setField(j, ""); save(); update(); };
+    });
+    const help = document.createElement("div"); help.className = "help";
+    help.textContent = "Javob katagini bosing — pastda matematik klaviatura chiqadi: kasr, ildiz, daraja, π.";
+    main.appendChild(help);
+  }
+
+  function makeFields(useMath){
+    fields.forEach(F => {
+      F.slot.innerHTML = "";
+      let el;
+      if (useMath){
+        el = document.createElement("math-field");
+        el.setAttribute("math-virtual-keyboard-policy", "auto");
+        el.smartFence = true;
+        if (st.lx[F.j]) el.value = st.lx[F.j];
+        else if (st.open[F.j]) el.value = st.open[F.j];
+        el.addEventListener("input", () => {
+          st.open[F.j] = el.getValue("ascii-math").trim();
+          st.lx[F.j] = el.value;
+          save(); update();
+        });
+      } else {
+        el = document.createElement("input"); el.className = "plain"; el.inputMode = "text";
+        el.placeholder = "Javob (masalan 3/4)"; el.value = st.open[F.j] || "";
+        el.addEventListener("input", () => { st.open[F.j] = el.value.trim(); save(); update(); });
+      }
+      F.el = el; F.slot.appendChild(el);
+    });
+  }
+  function setField(j, v){
+    const F = fields[j]; if (!F || !F.el) return;
+    if (F.el.tagName === "MATH-FIELD"){ F.el.value = v; delete st.lx[j]; } else F.el.value = v;
+  }
+
+  function startFields(){
+    if (window.customElements && customElements.get("math-field")){
+      try { window.mathVirtualKeyboard && (window.mathVirtualKeyboard.layouts = ["numeric", "symbols"]); } catch(e){}
+      makeFields(true);
+    } else makeFields(false);
+    update();
+  }
+  if (OL.length){
+    let tries = 0;
+    const wait = setInterval(() => {
+      tries++;
+      if ((window.customElements && customElements.get("math-field")) || tries > 30){ clearInterval(wait); startFields(); }
+    }, 100);
+  }
+
+  // ---- holat va yuborish ----
+  function answeredCount(){
+    let n = st.closed.filter(Boolean).length;
+    for (let j = 0; j < OL.length; j++) if (st.open[j]) n++;
+    return n;
+  }
+  function update(){
+    const n = answeredCount();
+    document.getElementById("bar").style.width = (total ? 100 * n / total : 0) + "%";
+    fields.forEach(F => F.box.classList.toggle("done", !!st.open[F.j]));
+    const label = (MODE === "key" ? "Kalitni saqlash" : "Yuborish") + " (" + n + "/" + total + ")";
+    if (tg && tg.MainButton){
+      tg.MainButton.setParams({ text: label, color: "#1F3A5F", text_color: "#ffffff", is_visible: true });
+    } else {
+      const b = document.getElementById("fallbackBtn"); b.style.display = "block"; b.textContent = label;
+    }
+  }
+
+  function payload(){
+    return JSON.stringify({ t: MODE === "key" ? "key" : "ans", c: CODE,
+      cl: st.closed, op: OL.map((_, j) => st.open[j] || "") });
+  }
+  function send(){
+    const data = payload();
+    try { localStorage.removeItem(STORE); } catch(e){}
+    if (tg && tg.sendData) tg.sendData(data); else alert(data);
+  }
+  function submit(){
+    if (END && Date.now() / 1000 > END){ say("Test vaqti tugagan."); return; }
+    const missing = total - answeredCount();
+    if (MODE === "key"){
+      if (missing){ say("Kalitda " + missing + " ta savol to‘ldirilmagan. Hammasini belgilang."); return; }
+      confirmThen("Kalit saqlansinmi? Keyin o‘zgartirib bo‘lmaydi.", send);
+      return;
+    }
+    const msg = missing ? (missing + " ta savolga javob berilmagan. Baribir yuborasizmi? Javoblarni faqat bir marta yuborish mumkin.")
+                        : "Javoblaringiz yuborilsinmi? Faqat bir marta yuborish mumkin.";
+    confirmThen(msg, send);
+  }
+  function say(t){ if (tg && tg.showAlert) tg.showAlert(t); else alert(t); }
+  function confirmThen(t, fn){ if (tg && tg.showConfirm) tg.showConfirm(t, ok => ok && fn()); else if (confirm(t)) fn(); }
+
+  if (tg && tg.MainButton) tg.MainButton.onClick(submit);
+  document.getElementById("fallbackBtn").onclick = submit;
+
+  // ---- taymer ----
+  if (END && MODE !== "key"){
+    const el = document.getElementById("timer"); el.hidden = false;
+    const tick = () => {
+      let s = Math.max(0, Math.floor(END - Date.now() / 1000));
+      const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), sec = s % 60;
+      el.textContent = (h ? h + ":" : "") + String(m).padStart(2, "0") + ":" + String(sec).padStart(2, "0");
+      el.classList.toggle("low", s < 300);
+      if (s === 0){ clearInterval(iv); say("Vaqt tugadi."); if (tg && tg.MainButton) tg.MainButton.hide(); }
+    };
+    const iv = setInterval(tick, 1000); tick();
+  }
+
+  if (!total){ main.innerHTML = '<div class="closed">Savollar topilmadi. Botga qayting.</div>'; }
+  update();
+})();
+</script>
+</body>
+</html>
