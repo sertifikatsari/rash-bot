@@ -42,6 +42,8 @@
   .opt{flex:1;height:42px;min-width:38px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg2);
     color:var(--text);font-weight:700;font-size:16px;cursor:pointer;transition:transform .08s}
   .opt:active{transform:scale(.94)}
+  .q.wide .opts{max-width:none;gap:5px}
+  .q.wide .opt{min-width:0;font-size:15px}
   .opt.on{background:var(--accent);border-color:var(--accent);color:#fff}
   .oq{padding:10px 12px;border-bottom:1px solid var(--line)}
   .oq:last-child{border-bottom:0}
@@ -84,7 +86,14 @@
   const END = parseInt(P.get("e") || "0", 10);
   const FAN = P.get("f") || "";
   const NAME = P.get("n") || "";
-  const LETTERS = "ABCDEF".slice(0, VAR).split("");
+  // Har bir savol uchun variantlar soni: vv=32x4,3x6  (bo'lmasa — hammasi v ta)
+  const VARS = [];
+  (P.get("vv") || "").split(",").filter(Boolean).forEach(part => {
+    const m = part.match(/^(\d+)x(\d)$/); if (!m) return;
+    for (let k = 0; k < +m[1]; k++) VARS.push(Math.min(6, Math.max(2, +m[2])));
+  });
+  while (VARS.length < NC) VARS.push(VAR);
+  const lettersFor = i => "ABCDEF".slice(0, VARS[i]).split("");
   const STORE = "rash_" + MODE + "_" + CODE;
 
   if (tg){ tg.ready(); tg.expand(); try{ tg.enableClosingConfirmation(); }catch(e){} }
@@ -103,13 +112,20 @@
 
   // ---- yopiq savollar ----
   if (NC){
-    const h = document.createElement("h2"); h.textContent = "Yopiq savollar (1–" + NC + ")"; main.appendChild(h);
-    const card = document.createElement("div"); card.className = "card"; main.appendChild(card);
+    let card = null;
     for (let i = 0; i < NC; i++){
+      if (i === 0 || VARS[i] !== VARS[i - 1]){
+        let j = i; while (j + 1 < NC && VARS[j + 1] === VARS[i]) j++;
+        const h = document.createElement("h2");
+        h.textContent = "Yopiq savollar " + (i + 1) + (j > i ? "–" + (j + 1) : "") + " · A–" + "ABCDEF"[VARS[i] - 1];
+        main.appendChild(h);
+        card = document.createElement("div"); card.className = "card"; main.appendChild(card);
+      }
       const row = document.createElement("div"); row.className = "q"; row.dataset.i = i;
       row.innerHTML = '<div class="num">' + (i + 1) + '</div><div class="opts"></div>';
       const opts = row.querySelector(".opts");
-      LETTERS.forEach(L => {
+      if (VARS[i] > 4) row.classList.add("wide");
+      lettersFor(i).forEach(L => {
         const b = document.createElement("button"); b.className = "opt"; b.textContent = L;
         b.onclick = () => {
           st.closed[i] = st.closed[i] === L ? "" : L;
