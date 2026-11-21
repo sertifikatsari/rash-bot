@@ -105,7 +105,7 @@ const head=(t,sub,r)=>`<div class="top"><img src="${LOGO}" alt=""><div><b>${esc(
 
 /* ---------- DAVOMAT / UYGA VAZIFA ---------- */
 function att(){
-  const R=D.r,S=D.s.map(x=>({uid:x[0],name:x[1],st:x[2],kech:x[3]||0,f:x[4]||0,m:x[5]||0}));
+  const R=D.r,MX=D.mx!==0,S=D.s.map(x=>({uid:x[0],name:x[1],st:x[2],kech:x[3]||0,f:x[4]||0,m:x[5]||0}));
   // ichki holat: a = 'p'|'l'|'a'|null ; h = 't'|'c'|'y'|null ; xo — qo'shimcha belgilar ochiq
   S.forEach(s=>{if(s.st==='k'){s.a='a';s.h=null}else if(s.st){s.a=s.kech?'l':'p';s.h=s.st}else{s.a=null;s.h=null}s.xo=!!(s.f||s.m)});
   const pts=s=>{if(!s.a)return 0;if(s.a==='a')return R.absent;let v=s.a==='p'?R.present:R.late;v+=s.h==='t'?R.hw_full:s.h==='c'?R.hw_half:s.h==='y'?R.hw_none:0;if(s.f)v+=R.formula;if(s.m)v+=R.mavzu;return v};
@@ -119,8 +119,8 @@ function att(){
      ${S.map((s,i)=>{const c=done(s)?(s.a==='a'?'abs':'ok'):(s.a?'mid':'');const here=s.a&&s.a!=='a';
       return `<div class="st ${c}"><div class="who"><span class="n">${i+1}</span><span class="nm">${esc(s.name)}</span><span class="pts ${pts(s)<0?'n':''}">${s.a?(pts(s)>0?'+':'')+pts(s):''}</span></div>
       <div class="ctl">${seg(i,'a',[['p','Keldi'],['l','Kechikdi'],['a','Yo\'q']],s.a)}
-      ${here?`<div class="seg">${[['t','To\'liq'],['c','Chala'],['y','Qilmadi']].map(x=>`<button class="b ${x[0]}${s.h===x[0]?' on':''}" data-i="${i}" data-h="${x[0]}">${x[1]}</button>`).join('')}<button class="b x f${s.f||s.m?' on':''}" data-i="${i}" data-x="1">⋯</button></div>`:`<div class="seg ph"><button class="b" disabled style="visibility:hidden">·</button></div>`}</div>
-      ${here&&s.xo?`<div class="xt"><button class="b f${s.f?' on':''}" data-i="${i}" data-f="1">Formula topshirmadi</button><button class="b f${s.m?' on':''}" data-i="${i}" data-m="1">Mavzu topshirmadi</button></div>`:''}</div>`}).join('')}
+      ${s.a!=='a'?`<div class="seg">${[['t','To\'liq'],['c','Chala'],['y','Qilmadi']].map(x=>`<button class="b ${x[0]}${s.h===x[0]?' on':''}" data-i="${i}" data-h="${x[0]}">${x[1]}</button>`).join('')}${MX?`<button class="b x f${s.f||s.m?' on':''}" data-i="${i}" data-x="1">⋯</button>`:''}</div>`:`<div class="seg ph"><button class="b" disabled style="visibility:hidden">·</button></div>`}</div>
+      ${MX&&s.a!=='a'&&s.xo?`<div class="xt"><button class="b f${s.f?' on':''}" data-i="${i}" data-f="1">Formula topshirmadi</button><button class="b f${s.m?' on':''}" data-i="${i}" data-m="1">Mavzu topshirmadi</button></div>`:''}</div>`}).join('')}
     </div><div class="save"><button id="sv">Saqlash · ${n}/${S.length}</button></div>`;
     window.scrollTo(0,y);
   }
@@ -131,7 +131,7 @@ function att(){
     if(d.q==='2'){S.forEach(s=>{if(!s.a){s.a='a'}});draw();return}
     if(d.i!==undefined){const s=S[+d.i];
       if(d.a){s.a=s.a===d.a?null:d.a;if(s.a==='a'||!s.a){s.h=null;s.f=0;s.m=0;s.xo=false}}
-      if(d.h)s.h=s.h===d.h?null:d.h;
+      if(d.h){if(!s.a)s.a='p';s.h=s.h===d.h?null:d.h}
       if(d.x)s.xo=!s.xo;
       if(d.f)s.f=s.f?0:1;if(d.m)s.m=s.m?0:1;
       if(tg&&tg.HapticFeedback)try{tg.HapticFeedback.selectionChanged()}catch(_){}
@@ -159,7 +159,7 @@ function rank(){
     }else{
       body=`<div class="card"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><div class="sm">Shu oydagi ballingiz</div><div class="big">${me.total}</div><div class="sm">${esc(me.pos)}</div></div><div style="text-align:right"><span class="chip">${esc(me.lvl)}</span><div style="margin-top:8px"><span class="chip ${me.ok?'ok':'w'}">${me.ok?'Mukofotga yaroqli':'Davomatni oshiring'}</span></div></div></div>
       ${me.next?`<div class="bar"><i style="width:${Math.min(100,Math.round(me.total/me.next[0]*100))}%;background:var(--gold)"></i></div><div class="sm" style="margin-top:6px">${esc(me.next[1])} darajasigacha ${me.next[0]-me.total} ball</div>`:''}</div>
-      <div class="card"><h3>Ko'rsatkichlarim</h3><div class="g2">${[['Davomat',me.att,me.attn],['Uyga vazifa',me.hw,me.hwn],['Takrorlash',me.tk,me.tkn]].map(x=>`<div><div class="sm">${x[0]}</div><b>${x[1]==null?'—':x[1]+'%'}</b><div class="bar"><i style="width:${x[1]||0}%"></i></div><div class="sm" style="margin-top:4px">${esc(x[2]||'')}</div></div>`).join('')}</div></div>
+      <div class="card"><h3>Ko'rsatkichlarim</h3><div class="g2">${[['Davomat',me.att,me.attn],['Uyga vazifa',me.hw,me.hwn],['Takrorlash',me.tk,me.tkn]].filter(x=>!(D.nm&&x[0]==='Takrorlash')).map(x=>`<div><div class="sm">${x[0]}</div><b>${x[1]==null?'—':x[1]+'%'}</b><div class="bar"><i style="width:${x[1]||0}%"></i></div><div class="sm" style="margin-top:4px">${esc(x[2]||'')}</div></div>`).join('')}</div></div>
       <div class="card"><h3>Ball qayerdan keldi</h3>${me.bd.map(x=>`<div class="kv"><span>${esc(x[0])}</span><b style="color:${x[1]<0?'var(--bad)':'var(--ok)'}">${x[1]>0?'+':''}${x[1]}</b></div>`).join('')||'<div class="sm">Hali ball yo\'q.</div>'}</div>
       ${me.weak&&me.weak.length?`<div class="card"><h3>Qayta ishlang</h3><div class="row">${me.weak.map(w=>`<span class="chip w">${esc(w)}</span>`).join('')}</div></div>`:''}
       <div class="card"><h3>Seriya</h3><div class="sm">Ketma-ket dars: <b>${me.run}</b>. Har ${me.sn} tada +${me.sb} ball.</div></div>`;
