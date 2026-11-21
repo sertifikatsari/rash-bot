@@ -58,6 +58,31 @@ body{padding-bottom:96px}
 .kv{display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--line)}.kv:first-child{border-top:0}
 h3{margin:0 0 8px;font-size:15px}
 .err{padding:30px 16px;text-align:center;color:var(--muted)}
+
+/* --- ixcham davomat (telefon va kompyuterda bir xil) --- */
+.wrap{max-width:760px}
+.prog{height:4px;background:rgba(255,255,255,.28)}.prog i{display:block;height:100%;background:#fff;transition:width .2s}
+.q{margin-bottom:8px}.q button{padding:9px 6px;font-size:13px;border-radius:10px}
+.st{background:var(--card);border-radius:12px;padding:8px 10px;margin-bottom:6px;border-left:4px solid var(--line)}
+.st.ok{border-left-color:var(--ok)}.st.mid{border-left-color:var(--warn)}.st.abs{border-left-color:var(--muted)}
+.who{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+.who .n{color:var(--muted);font-size:12px;width:20px;flex:none;text-align:right;font-variant-numeric:tabular-nums}
+.who .nm{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.who .pts{font-weight:700;font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--ok)}.who .pts.n{color:var(--bad)}
+.ctl{display:flex;flex-direction:column;gap:5px}
+.seg{display:flex;gap:4px}
+.seg .b{flex:1;min-width:0;padding:8px 2px;font-size:13px;border-radius:9px;white-space:nowrap}
+.seg .b.x{flex:0 0 40px}
+.xt{display:flex;gap:4px;margin-top:5px}.xt .b{padding:7px 4px;font-size:12.5px}
+.seg.ph{display:none}
+.sub{font-size:11px;color:var(--muted);margin:2px 0 4px;text-transform:uppercase;letter-spacing:.04em}
+@media(min-width:700px){
+  .st{padding:8px 12px}
+  .who{margin-bottom:0}
+  .st{display:grid;grid-template-columns:minmax(190px,1fr) 2fr;gap:12px;align-items:center}
+  .ctl{flex-direction:row;gap:10px;align-items:center}.ctl .seg{flex:1}.ctl .seg.ph{display:flex;visibility:hidden}
+  .xt{grid-column:2}
+}
 </style>
 </head>
 <body>
@@ -81,19 +106,23 @@ const head=(t,sub,r)=>`<div class="top"><img src="${LOGO}" alt=""><div><b>${esc(
 /* ---------- DAVOMAT / UYGA VAZIFA ---------- */
 function att(){
   const R=D.r,S=D.s.map(x=>({uid:x[0],name:x[1],st:x[2],kech:x[3]||0,f:x[4]||0,m:x[5]||0}));
-  // ichki holat: a = 'p'|'l'|'a'|null ; h = 't'|'c'|'y'|null
-  S.forEach(s=>{if(s.st==='k'){s.a='a';s.h=null}else if(s.st){s.a=s.kech?'l':'p';s.h=s.st}else{s.a=null;s.h=null}});
+  // ichki holat: a = 'p'|'l'|'a'|null ; h = 't'|'c'|'y'|null ; xo — qo'shimcha belgilar ochiq
+  S.forEach(s=>{if(s.st==='k'){s.a='a';s.h=null}else if(s.st){s.a=s.kech?'l':'p';s.h=s.st}else{s.a=null;s.h=null}s.xo=!!(s.f||s.m)});
   const pts=s=>{if(!s.a)return 0;if(s.a==='a')return R.absent;let v=s.a==='p'?R.present:R.late;v+=s.h==='t'?R.hw_full:s.h==='c'?R.hw_half:s.h==='y'?R.hw_none:0;if(s.f)v+=R.formula;if(s.m)v+=R.mavzu;return v};
   const done=s=>s.a==='a'||(s.a&&s.h);
+  const seg=(i,k,opts,cur)=>`<div class="seg">${opts.map(o=>`<button class="b ${o[0]}${cur===o[0]?' on':''}" data-i="${i}" data-${k}="${o[0]}">${o[1]}</button>`).join('')}</div>`;
   function draw(){
+    const y=window.scrollY;
     const n=S.filter(done).length;
-    $('#app').innerHTML=head(D.g,D.day.split('-').reverse().join('.'),`${n}/${S.length}`)+`<div class="wrap">
+    $('#app').innerHTML=head(D.g,D.day.split('-').reverse().join('.'),`${n}/${S.length}`)+`<div class="prog"><i style="width:${S.length?Math.round(100*n/S.length):0}%"></i></div><div class="wrap" style="padding-top:10px">
      <div class="q"><button data-q="1">Hammasi keldi + vazifa to'liq</button><button data-q="2">Belgilanmaganlar: kelmadi</button></div>
-     ${S.map((s,i)=>`<div class="card"><div class="stu"><span class="nm">${i+1}. ${esc(s.name)}</span><span class="pts ${pts(s)<0?'n':''}">${s.a?(pts(s)>0?'+':'')+pts(s):''}</span></div>
-      <div class="row"><span class="lab">Dars</span>${[['p','Keldi'],['l','Kechikdi'],['a','Yo\'q']].map(x=>`<button class="b ${x[0]}${s.a===x[0]?' on':''}" data-i="${i}" data-a="${x[0]}">${x[1]}</button>`).join('')}</div>
-      ${s.a&&s.a!=='a'?`<div class="row" style="margin-top:6px"><span class="lab">Vazifa</span>${[['t','To\'liq'],['c','Chala'],['y','Qilmadi']].map(x=>`<button class="b ${x[0]}${s.h===x[0]?' on':''}" data-i="${i}" data-h="${x[0]}">${x[1]}</button>`).join('')}</div>
-      <div class="row" style="margin-top:6px"><span class="lab"></span><button class="b f${s.f?' on':''}" data-i="${i}" data-f="1">Formula topshirmadi</button><button class="b f${s.m?' on':''}" data-i="${i}" data-m="1">Mavzu topshirmadi</button></div>`:''}</div>`).join('')}
+     ${S.map((s,i)=>{const c=done(s)?(s.a==='a'?'abs':'ok'):(s.a?'mid':'');const here=s.a&&s.a!=='a';
+      return `<div class="st ${c}"><div class="who"><span class="n">${i+1}</span><span class="nm">${esc(s.name)}</span><span class="pts ${pts(s)<0?'n':''}">${s.a?(pts(s)>0?'+':'')+pts(s):''}</span></div>
+      <div class="ctl">${seg(i,'a',[['p','Keldi'],['l','Kechikdi'],['a','Yo\'q']],s.a)}
+      ${here?`<div class="seg">${[['t','To\'liq'],['c','Chala'],['y','Qilmadi']].map(x=>`<button class="b ${x[0]}${s.h===x[0]?' on':''}" data-i="${i}" data-h="${x[0]}">${x[1]}</button>`).join('')}<button class="b x f${s.f||s.m?' on':''}" data-i="${i}" data-x="1">⋯</button></div>`:`<div class="seg ph"><button class="b" disabled style="visibility:hidden">·</button></div>`}</div>
+      ${here&&s.xo?`<div class="xt"><button class="b f${s.f?' on':''}" data-i="${i}" data-f="1">Formula topshirmadi</button><button class="b f${s.m?' on':''}" data-i="${i}" data-m="1">Mavzu topshirmadi</button></div>`:''}</div>`}).join('')}
     </div><div class="save"><button id="sv">Saqlash · ${n}/${S.length}</button></div>`;
+    window.scrollTo(0,y);
   }
   draw();
   document.addEventListener('click',e=>{
@@ -101,8 +130,9 @@ function att(){
     if(d.q==='1'){S.forEach(s=>{if(!s.a){s.a='p';s.h='t'}else if(s.a!=='a'&&!s.h)s.h='t'});draw();return}
     if(d.q==='2'){S.forEach(s=>{if(!s.a){s.a='a'}});draw();return}
     if(d.i!==undefined){const s=S[+d.i];
-      if(d.a){s.a=s.a===d.a?null:d.a;if(s.a==='a'||!s.a){s.h=null;s.f=0;s.m=0}}
+      if(d.a){s.a=s.a===d.a?null:d.a;if(s.a==='a'||!s.a){s.h=null;s.f=0;s.m=0;s.xo=false}}
       if(d.h)s.h=s.h===d.h?null:d.h;
+      if(d.x)s.xo=!s.xo;
       if(d.f)s.f=s.f?0:1;if(d.m)s.m=s.m?0:1;
       if(tg&&tg.HapticFeedback)try{tg.HapticFeedback.selectionChanged()}catch(_){}
       draw();return}
