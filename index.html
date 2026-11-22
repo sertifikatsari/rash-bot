@@ -12,8 +12,8 @@
     --bg2: var(--tg-theme-secondary-bg-color, #f3f4f7);
     --text: var(--tg-theme-text-color, #1b1f2a);
     --hint: var(--tg-theme-hint-color, #8a8f9c);
-    --accent: #1F3A5F;            /* asosiy rang */
-    --accent-2: #C9A227;          /* oltin */
+    --accent: #048C64;            /* asosiy rang */
+    --accent-2: #A8E6CF;          /* oltin */
     --ok: #1E9E5A;
     --warn: #E0692B;
     --card: var(--tg-theme-bg-color, #ffffff);
@@ -86,6 +86,7 @@
   const END = parseInt(P.get("e") || "0", 10);
   const FAN = P.get("f") || "";
   const NAME = P.get("n") || "";
+  const TEXT_MODE = P.get("it") === "t";                         // t — oddiy matn klaviaturasi (ona tili, tarix...)
   // Har bir savol uchun variantlar soni: vv=32x4,3x6  (bo'lmasa — hammasi v ta)
   const VARS = [];
   (P.get("vv") || "").split(",").filter(Boolean).forEach(part => {
@@ -156,7 +157,8 @@
       box.querySelector(".clr").onclick = () => { st.open[j] = ""; setField(j, ""); save(); update(); };
     });
     const help = document.createElement("div"); help.className = "help";
-    help.textContent = "Javob katagini bosing — pastda matematik klaviatura chiqadi: kasr, ildiz, daraja, π.";
+    help.textContent = TEXT_MODE ? "Javob katagini bosing va javobingizni yozing (katta-kichik harf farq qilmaydi)."
+                                 : "Javob katagini bosing — pastda matematik klaviatura chiqadi: kasr, ildiz, daraja, π.";
     main.appendChild(help);
   }
 
@@ -177,7 +179,8 @@
         });
       } else {
         el = document.createElement("input"); el.className = "plain"; el.inputMode = "text";
-        el.placeholder = "Javob (masalan 3/4)"; el.value = st.open[F.j] || "";
+        el.placeholder = TEXT_MODE ? "Javobingizni yozing" : "Javob (masalan 3/4)"; el.value = st.open[F.j] || "";
+        el.autocomplete = "off"; el.spellcheck = false;
         el.addEventListener("input", () => { st.open[F.j] = el.value.trim(); save(); update(); });
       }
       F.el = el; F.slot.appendChild(el);
@@ -189,13 +192,15 @@
   }
 
   function startFields(){
+    if (TEXT_MODE){ makeFields(false); update(); return; }
     if (window.customElements && customElements.get("math-field")){
-      try { window.mathVirtualKeyboard && (window.mathVirtualKeyboard.layouts = ["numeric", "symbols"]); } catch(e){}
+      try { window.mathVirtualKeyboard && (window.mathVirtualKeyboard.layouts = ["numeric", "symbols", "alphabetic"]); } catch(e){}
       makeFields(true);
     } else makeFields(false);
     update();
   }
-  if (OL.length){
+  if (OL.length && TEXT_MODE) startFields();
+  else if (OL.length){
     let tries = 0;
     const wait = setInterval(() => {
       tries++;
@@ -215,7 +220,7 @@
     fields.forEach(F => F.box.classList.toggle("done", !!st.open[F.j]));
     const label = (MODE === "key" ? "Kalitni saqlash" : "Yuborish") + " (" + n + "/" + total + ")";
     if (tg && tg.MainButton){
-      tg.MainButton.setParams({ text: label, color: "#1F3A5F", text_color: "#ffffff", is_visible: true });
+      tg.MainButton.setParams({ text: label, color: "#048C64", text_color: "#ffffff", is_visible: true });
     } else {
       const b = document.getElementById("fallbackBtn"); b.style.display = "block"; b.textContent = label;
     }
