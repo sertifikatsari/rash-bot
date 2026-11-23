@@ -57,6 +57,12 @@
   .help{font-size:13px;color:var(--hint);margin:6px 8px 0}
   .fallback{position:fixed;left:12px;right:12px;bottom:12px;height:52px;border:0;border-radius:14px;
     background:var(--accent);color:#fff;font-weight:700;font-size:16px;display:none}
+  .guide{background:var(--card);border-radius:14px;margin:0 0 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);font-size:14px}
+  .guide summary{cursor:pointer;padding:12px 14px;font-weight:700;color:var(--accent);list-style:none}
+  .guide summary::-webkit-details-marker{display:none}
+  .guide div{padding:0 14px 12px}
+  .guide p{margin:6px 0}
+  .guide code{background:var(--bg2);border-radius:6px;padding:1px 6px;font-size:13px}
   .closed{padding:40px 20px;text-align:center;color:var(--hint)}
 </style>
 </head>
@@ -110,6 +116,26 @@
 
   const main = document.getElementById("main");
   const total = NC + OL.length;
+
+  // ---- yo'riqnoma ----
+  if (MODE !== "key" && total){
+    const g = document.createElement("details"); g.className = "guide";
+    g.innerHTML = '<summary>📖 Javoblarni qanday kiritiladi? (bosing)</summary><div>' +
+      '<p><b>Yopiq savollar:</b> har bir savol uchun A, B, C... tugmalaridan bittasini bosing. Tanlovni bekor qilish uchun shu tugmani qayta bosing.</p>' +
+      (OL.length ? (TEXT_MODE ?
+        '<p><b>Yozma savollar:</b> katakni bosib javobni yozing, katta-kichik harf farq qilmaydi.</p>' :
+        '<p><b>Yozma savollar:</b> katakni bosing, pastda klaviatura chiqadi. Faqat <b>yakuniy javobni</b> yozing, yechim kerak emas.</p>' +
+        '<p>• Kasr: <code>a/b</code> tugmasi yoki <code>3/4</code><br>' +
+        '• Ildiz: <code>√</code> tugmasi (<code>ⁿ√</code> — n-darajali)<br>' +
+        '• Daraja: <code>xⁿ</code> tugmasi yoki <code>^</code><br>' +
+        '• Logarifm: <code>f(x)</code> bo‘limidagi <code>logₐb</code> — avval asosni, keyin sonni yozing. Masalan log₂8 uchun: asos 2, son 8. <code>ln</code> va <code>lg</code> (10 asosli) ham shu yerda<br>' +
+        '• Gradus: <code>°</code> tugmasi (masalan sin 30°)<br>' +
+        '• π, e, yunon harflari (α, β, γ, θ): <code>f(x)</code> bo‘limida; harflar uchun «ABC» bo‘limi ham bor<br>' +
+        '• O‘nli kasr: <code>5,5</code> yoki <code>5.5</code> — ikkalasi ham bo‘ladi<br>' +
+        '• Natija teng bo‘lsa yetarli: <code>2ln2</code> va <code>ln4</code> ikkalasi ham to‘g‘ri</p>') : '') +
+      '<p><b>Yuborish:</b> pastdagi yashil tugma. Javoblar faqat <b>bir marta</b> yuboriladi, yuborishdan oldin tekshirib oling.</p></div>';
+    main.appendChild(g);
+  }
 
   // ---- yopiq savollar ----
   if (NC){
@@ -194,7 +220,28 @@
   function startFields(){
     if (TEXT_MODE){ makeFields(false); update(); return; }
     if (window.customElements && customElements.get("math-field")){
-      try { window.mathVirtualKeyboard && (window.mathVirtualKeyboard.layouts = ["numeric", "symbols", "alphabetic"]); } catch(e){}
+      try {
+        if (window.mathVirtualKeyboard){
+          const K = (latex, label, extra) => Object.assign({ latex: latex, label: label, class: "small" }, extra || {});
+          const maxsus = {
+            label: "f(x)", tooltip: "Logarifm, gradus, yunon harflari",
+            rows: [
+              [ K("\\log_{#?}\\left(#?\\right)", "log<sub>a</sub>b", { class: "small" }),
+                K("\\ln\\left(#?\\right)", "ln"),
+                K("\\lg\\left(#?\\right)", "lg"),
+                K("e", "e"), K("\\pi", "π"), K("^{\\circ}", "°"), K("\\infty", "∞") ],
+              [ K("\\sin\\left(#?\\right)", "sin"), K("\\cos\\left(#?\\right)", "cos"),
+                K("\\tan\\left(#?\\right)", "tg"), K("\\cot\\left(#?\\right)", "ctg"),
+                K("\\arcsin\\left(#?\\right)", "arcsin"), K("\\arctan\\left(#?\\right)", "arctg") ],
+              [ K("\\alpha", "α"), K("\\beta", "β"), K("\\gamma", "γ"), K("\\delta", "δ"),
+                K("\\theta", "θ"), K("\\varphi", "φ"), K("\\omega", "ω") ],
+              [ K("\\frac{#?}{#?}", "a/b"), K("\\sqrt{#?}", "√"), K("\\sqrt[#?]{#?}", "ⁿ√"),
+                K("#@^{#?}", "xⁿ"), K("\\left|#?\\right|", "|x|"), K("\\pm", "±"), "[backspace]" ]
+            ]
+          };
+          window.mathVirtualKeyboard.layouts = ["numeric", maxsus, "symbols", "alphabetic"];
+        }
+      } catch(e){ try { window.mathVirtualKeyboard.layouts = ["numeric", "symbols", "alphabetic"]; } catch(e2){} }
       makeFields(true);
     } else makeFields(false);
     update();
